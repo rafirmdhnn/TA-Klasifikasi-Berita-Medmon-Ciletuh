@@ -11,8 +11,8 @@ from sklearn.feature_selection import chi2
 from pandas import DataFrame
 
 
-file = open(r'C:\\Skripsi\Skripsi\Sidang\Dataset\single-dataset.csv','r')
-df = pd.read_csv(file, delimiter = ',',  encoding='cp1252')
+file = open(r'C:\Sidang Akhir\Sidang\Dataset\single-dataset.csv','r')
+df = pd.read_csv(file, delimiter = ';',  encoding='cp1252')
 X = df.iloc[:, 1:30]
 y = df.iloc[:, 30]
 
@@ -23,25 +23,26 @@ print(chi_score)
 
 result = []
 for i in range(len(query)):
-    pVal = chi_score[1][i]
+    chi = chi_score[1][i]
     fitur = query[i]
-    result.append((fitur, pVal))
+    result.append((fitur, chi))
 
 hasil = DataFrame(result)
-hasil.columns = ['Fitur', 'P_Value']
+hasil.columns = ['Fitur', 'chi_sqr']
 hasil.index = hasil.index + 1
-hasil.sort_values("P_Value", ascending = False , inplace = True)
-hasil.to_csv(r'C:\Skripsi\Skripsi\Sidang\Result\outputChisqr.csv', index=None)
+hasil.sort_values("chi_sqr", ascending = False , inplace = True)
+hasil.to_csv(r'C:\Sidang Akhir\Sidang\Hasil\outputChisqr.csv', index=None)
 
 # set nilai threshold
-threshold =  0.05
+threshold =  0.01
 # seleksi berdasarkan nilai p.value sesuai threshold yg ditentukan
-waste = hasil[(hasil.P_Value <= threshold) | (hasil.P_Value.isnull())]
+waste = hasil[(hasil.chi_sqr <= threshold) | (hasil.chi_sqr.isnull())]
 wastedFeature = list(waste['Fitur'])
+print(wastedFeature)
 # delete column atau fitur dari data sesuai hasil yg telah diseleksi
 goodFeature = df.drop(wastedFeature, axis=1)
 # save data to csv
-pathCsv = r'C:\Skripsi\Skripsi\Sidang\Dataset\chiSqr({})-dataset.csv'.format(threshold)
+pathCsv = r'C:\Sidang Akhir\Sidang\Dataset\DtchiSqr({})-dataset.csv'.format(threshold)
 goodFeature.to_csv(pathCsv, index = None)
 
 p_values = pd.Series(chi_score[1], index = X.columns)

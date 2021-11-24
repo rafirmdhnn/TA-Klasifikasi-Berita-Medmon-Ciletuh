@@ -15,14 +15,15 @@ class MultiNayes:
         self.alpha = alpha
         self.fitted = False
 
-#Training Multinomial Naive Bayes
+#TRAIN MODEL KLASIFIKASI MNB
+    #fungsi untuk mengubah label/kelas kedalam bentuk biner
     def label_array(self, y, classes=None, label_bin=None):
         if classes is None:
             classes = np.unique(y)
             label_bin = np.zeros((y.shape[0], classes.shape[0]))
             self.classes = classes
             self.label_bin = label_bin
-
+            
         if label_bin.shape[0] < 1:
             return None
 
@@ -37,44 +38,40 @@ class MultiNayes:
         
         #menghitung jumlah label/kelas yang terdapat pada dataset
         self.n_classes = self.classes.shape[0]
-        #menghitung jumlah fitur yang digunakan pada dataset
+        #menghitung jumlah fitur yang terdapat pada dataset
         self.n_features = X.shape[1]
         
         #array kosong untuk menyimpan hasil perhitungan jumlah label 
         self.class_count = np.zeros(self.n_classes)
-        #array kosong untuk menyimpan hasil perhitungan jumlah fitur
+        #array kosong untuk menyimpan hasil perhitungan jumlah fitur/term pada setiap dokumen data train
         self.feature_count = np.zeros((self.n_classes, self.n_features))
         
-        #
+        #menghitung jumlah kemunculan (frekuensi) fitur pada kedua label dari seluruh data train (count(tn,a))
         self.feature_count += np.dot(self.label_bin.T, X)
+        #menghitung jumlah dari tiap label (N(a))
         self.class_count += self.label_bin.sum(axis=0)
 
-        # add smoothing 
-        if self.alpha > 0:
-            self.feature_count += self.alpha
-            self.smoothed_class_count = self.feature_count.sum(axis=1)
+        # add smoothing
+        self.feature_count += self.alpha
+        # untuk menghitung nilai (Count(a) + |V|)
+        self.smoothed_class_count = self.feature_count.sum(axis=1)
 
-        # calculate cond log prob  P(tn|a) = Count(tn,a) + 1 / Count(a) + |V| <=> P(tn|a) = log(Count(tn,a) + 1) - log(Count(a) + |V|)
-            self.feat_log_probs = (np.log(self.feature_count) -
-                               np.log(self.smoothed_class_count.reshape(-1, 1)))
-        else:
-            
-            self.feat_log_probs = np.log(                                
-                                self.feature_count /
-                                self.feature_count
-                                .sum(axis=1)
-                                .reshape(-1, 1)
-                              )
+        # hitung cond prob  P(tn|a) = Count(tn,a) + 1 / Count(a) + |V| <=> P(tn|a) = log(Count(tn,a) + 1) - log(Count(a) + |V|)
+        # perhitungan dilakukan dengan menggunakan log untuk menghindari terjadinya 
+        # floating point underflow kondisi angka dibelakang koma yang melebihi batas yg ditampung atau diproses komputer
+        self.feat_log_probs = (np.log(self.feature_count) -
+                           np.log(self.smoothed_class_count.reshape(-1, 1)))
 
-        # calculate log priors  P(a) = N(a)/N <=> P log2(N(a)) - log2(N)
+        # hitung prob prior  P(a) = N(a)/N <=> P log2(N(a)) - log2(N)
         self.class_log_priors = (np.log(self.class_count) - np.log(self.class_count.sum(axis=0).reshape(-1, 1)))
         
         #set classifier fitted = true
         self.fitted = True
 
-#Testing Multinomial Naive Bayes
+##TESTING MODEL KLASIFIKASI 
     def predict(self, X):
-        #hitung MAP (Maximum a Posteriori)  Cmap = P(a) x P(tn|a) <=> Cmap = log(P(a)) + log(P(tn|a))
+        #hitung MAP (Maximum a Posteriori) dengan input data test, Cmap = P(a) x P(tn|a) <=> Cmap = log(P(a)) + log(P(tn|a))
+        #fungsi dot dilakukan untuk mempermudah perhitungan cond prob dengan input data testing
         self.scores = np.dot(X, self.feat_log_probs.T) + self.class_log_priors
         #menentukan prediksi berdasarkan nilai MAP tertinggi
         self.predictions = self.classes[np.argmax(self.scores, axis=1)]
@@ -82,6 +79,7 @@ class MultiNayes:
         return self.predictions
 
     def accuracy(self, y_pred, y):
+        #menghitung nilai akurasi dari hasil prediksi yang diperoleh
         self.points = (y_pred == y).astype(int)
         self.akurasi = self.points.sum() / self.points.shape[0]
         return self.akurasi
@@ -123,11 +121,12 @@ class MultiNayes:
         return(self.cm_mn)
     
     def evaluasi(self):
-        #Menghitung nilai recall, precision, f1-score
+        #menentukan TP,TN,FP,FN berdasarkan nilai confussion matrix
         self.TP = self.cm_mn[0][0]
         self.TN = self.cm_mn[1][1]
         self.FP = self.cm_mn[1][0]
         self.FN = self.cm_mn[0][1]
+        #Menghitung nilai recall, precision, f1-score
         self.recall = self.TP / (self.TP + self.FN)
         self.precision = self.TP / (self.TP + self.FP)
         self.F1score = 2 * (self.recall * self.precision) / (self.recall + self.precision)
@@ -138,45 +137,48 @@ class MultiNayes:
 #%%
 #Run Model Multinomial Naive Bayes
 
-#Mempersiapkan dataset yang akan digunakan
-file = open(r'C:\\Skripsi\Skripsi\Sidang\Dataset\multidim-dataset.csv','r')
-df = pd.read_csv(file, delimiter=';')
+#list dataset yg digunakan:
+#single dimensional tanpa pemilihan fitur -> single-dataset.csv
+#single dimensional dengan IG (0.05) -> DtIG(0.05)-dataset.csv
+#single dimensional dengan IG (0.01) -> DtIG(0.01)-dataset.csv
+#single dimensional dengan CHI (0.01) -> chiSqr(0.01)-dataset.csv
+#single dimensional dengan CHI (0.01) -> chiSqr(0.05)-dataset.csv
+#multidimensional -> multidimensional-dataset.csv
 
-#noFeature: 1:30
-#infogain (0.01): 1:26
-#infogain (0.05): 1:17
-#chisquare (0.05): 1:17
-#chisquare (0.01): 1:24
-#multidimension: 1:6
-X = df.iloc[:, 1:6]
-y = df.iloc[:, 6].values
+#Mempersiapkan dataset yang akan digunakan
+file = open(r'C:\Sidang Akhir\Sidang\Dataset\DtIG(0.01)-dataset.csv','r')
+#untuk dataset multidimensional ubah delimiter menjadi ';'
+df = pd.read_csv(file, delimiter=',')
+
+#Nilai untuk memperoleh fitur sebagai variabel X dan label sebagai variabel Y:
+#noFeature: X = [:, 1:30] , Y = [:, 30]
+#infogain (0.01): X = [;, 1:26] , Y = [:, 26]
+#infogain (0.05): X = [:, 1:17] , Y = [:, 17]
+#chisquare (0.05): X = [:, 1:17] , Y = [:, 17]
+#chisquare (0.01): X = [:, 1:24] , Y = [:, 24]
+#multidimension: X = [:, 1:6] , Y = [:, 6]
+X = df.iloc[:, 1:26]
+y = df.iloc[:, 26].values
 
 # Membagi dataset ke dalam Training dan Test set
 from sklearn.model_selection import train_test_split
-X_train, X_test, y_train, y_test = train_test_split(X, y, train_size = 0.50, random_state = 1)
-#run training model klasifikasi MNB
+X_train, X_test, y_train, y_test = train_test_split(X, y, train_size = 0.90, random_state = 0)
+
+#training model klasifikasi MNB
 clf = MultiNayes()
 clf.fit(X_train, y_train)
 #jalankan model untuk melakukan prediksi
-
 #prediksi data test
 y_pred_test = clf.predict(X_test)
+#jalankan fungsi untuk memperoleh nilai akurasi
 akurasi_test = clf.accuracy(y_pred_test, y_test)
 print("Nilai akurasi sebesar :", "%.2f" % (akurasi_test * 100), "pada test set")
 #jalankan fungsi confusion matrix dengan input y_test dan y_pred
 cm_train = clf.confusion_matrix(y_test, y_pred_test)
+#jalankan fungsi untuk melakukan evaluasi berdasarkan nilai precision, recall, dan f1-score
 metricScore_test = clf.evaluasi()
 
-
-#prediksi data train
-y_pred_train = clf.predict(X_train)
-akurasi_train = clf.accuracy(y_pred_train, y_train)
-print("Nilai akurasi sebesar :", "%.2f" % (akurasi_train * 100), "pada train set")
-#jalankan fungsi confusion matrix dengan input y_test dan y_pred
-cm_test = clf.confusion_matrix(y_train, y_pred_train)
-metricScore_train = clf.evaluasi()
-
-#save prediksi ke csv
+#save hasil prediksi kedalam file csv
 resPred = []
 for i in range(len(y_pred_test)):
     # if(X_test.index[i] == raw['dokumen'])
@@ -184,4 +186,4 @@ for i in range(len(y_pred_test)):
 pred_df = pd.DataFrame(resPred, index=None) 
 pred_df.columns = ['dokumen','Prediksi', 'Actual']
 
-pred_df.to_csv(r'C:\Skripsi\Skripsi\Sidang\Result\MNB\MUL-90.csv', index=None)
+pred_df.to_csv(r'C:\Sidang Akhir\Sidang\Hasil\MNB\IG(0.01)-90.csv', index=None)

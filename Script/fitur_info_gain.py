@@ -34,19 +34,32 @@ class infoGain(object):
         #melakukan perhitungan nilai entropi setiap fitur dan nilai IG setiap fitur
         for i in self.fitur:
             self.classEntropy = 0
+            self.entropiAtt = []
+            self.totalAtt = []
+            self.getAtt = []
+            #kondisi looping untuk memperoleh seluruh atribut berdasarkan masing2 label pada fitur(i)
             for c, att in self.data.groupby([i]):
+                #menyimpan atribut(c) pada fitur[i] pada list getAtt
+                self.getAtt.append(c)
+                #menghitung jumlah nilai/atribut(c) dari keseluruhan label
                 self.attTotal = att.count().values[0]
+                #menghitung jumlah nilai/atribut(c) dari tiap label 0 dan 1
                 self.p = Counter(att['label'].tolist())
+                #menyimpan jumlah nilai/atribut(c) dari tiap label 0 dan 1 kedalam list
+                self.totalAtt.append(self.p)
+                #list untuk menampung entropi dari seluruh nilai/atribut pada fitur[i]
                 self.value = []
-                #menghitung nilai etnropi masing2 atribut dari setiap fitur
+                #menghitung entropi masing2 nilai/atribut dari kedua label 0 dan 1 dari fitur[i]
                 for v in self.p.values():
                     self.value.append(-v/self.attTotal * np.log2(v/self.attTotal))
-                #menghitung nilai entropi kelas dari fitur setipa fitur
+                #menghitung nilai entropi kelas dari setiap fitur
                 self.classEntropy += self.attTotal/self.data.count().values[0] * sum(self.value)
-            #menghitung nilai information gain dari setiap fitur
+                self.entropiAtt.append(self.value)
+            #menghitung nilai information gain fitur[i]
             self.infoGain = (self.entropiParent - self.classEntropy)
             self.fiturIG.append([i, self.entropiParent, self.classEntropy, self.infoGain])
     
+    #fungsi untuk menyimpan hasil kedalam file csv
     def saveCsv(self, threshold, outIg, dtIg):
         self.outIg = outIg
         self.dtIg = dtIg
@@ -74,18 +87,26 @@ class infoGain(object):
 #%%
 
 #import dataset
-file = open(r'C:\Sidang Akhir\TA-Klasifikasi-Berita-Medmon-Ciletuh\Dataset\single-dataset.csv','r')
-dataset = pd.read_csv(file, delimiter = ',',  encoding='cp1252')
+file = open(r'C:\Sidang Akhir\Sidang\Dataset\single-dataset.csv','r')
+dataset = pd.read_csv(file, delimiter = ';',  encoding='cp1252')
 
 #set nilai threshold, dan path untuk menyimpan file csv output
 threshold = 0.01
 #path untuk menyimpan file hasil perhitungan IG keseluruhan
-pathOutIg = r'C:\Sidang Akhir\TA-Klasifikasi-Berita-Medmon-Ciletuh\Dataset\OutIG({})-result.csv'.format(threshold)
-#path untuk menyimpan file dataset setelah dilakukan seleksi fitur yang kurang relevan
-pathDtIg = r'C:\Sidang Akhir\TA-Klasifikasi-Berita-Medmon-Ciletuh\Dataset\DtIG({})-dataset.csv'.format(threshold)
+#pathOutIg = r'C:\Sidang Akhir\TA-Klasifikasi-Berita-Medmon-Ciletuh\Dataset\OutIG({})-result.csv'.format(threshold)
 
-#initiallize object
+pathOutIg = r'C:\Sidang Akhir\Sidang\Hasil\OutIG({})-result.csv'.format(threshold)
+
+#path untuk menyimpan file dataset setelah dilakukan seleksi fitur yang kurang relevan
+#pathDtIg = r'C:\Sidang Akhir\TA-Klasifikasi-Berita-Medmon-Ciletuh\Dataset\DtIG({})-dataset.csv'.format(threshold)
+
+pathDtIg = r'C:\Sidang Akhir\Sidang\Dataset\DtIG({})-dataset.csv'.format(threshold)
+
+#initiallize object yang akan digunakan
 ig = infoGain(dataset)
+#jalankan fungsi untuk menghitung entropi Parent
 entropi = ig.countEntropyP()
+#jalankan fungsi untuk menghitung entropi class dan information gain dari setiao fitur
 out_ig = ig.countIG()
+#jalankan fungsi untuk menyimpan hasil pemilihan fitur kedalam csv
 ig.saveCsv(threshold,pathOutIg, pathDtIg)

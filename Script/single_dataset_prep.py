@@ -102,6 +102,7 @@ class dataPreparation(object):
     def tfidf(self, fitur):
         #memanggil library TfidfVectorizer Scikit-learn untuk perhitungan nilai TFIDF dengan parameter fitur
         self.tfidf_vect = TfidfVectorizer(analyzer='word', use_idf=True, smooth_idf=True ,vocabulary=(fitur))
+        #melakukan perhitungan tf-idf dengan menggunakan fungsi .fit_transform() menggunakan input data corpus (data hasil preprocessing)
         self.tfidf_query = self.tfidf_vect.fit_transform(self.corpus)
         
         #menyimpan hasil pemberian bobot berdasarkan perhitungan nilai TF-IDF kedalam bentuk dataFrame
@@ -124,20 +125,21 @@ class dataPreparation(object):
 #import data csv
 file = open(r'C:\Sidang Akhir\TA-Klasifikasi-Berita-Medmon-Ciletuh\Dataset\raw.csv','r')
 dataset = pd.read_csv(file, delimiter = ';',  encoding='cp1252' )
+#mengambil isi berita dari data raw 
 isi = dataset['isi']
 
 #initialize object
 preProcessing = dataPreparation(dataset)
-#preprocessing
-out = preProcessing.preProc()
 #labeling into numeric
 label = preProcessing.labeling()
+#preprocessing
+out = preProcessing.preProc()
 #bag-of-word
 bow = preProcessing.BoW()
 
 #%%
 
-#inisiasi fitur untuk input key word tf-idf
+#inisiasi fitur untuk input keyword/vocabulary tf-idf
 fitur = ['unesco',
          'gempa',
          'menteri',
@@ -168,13 +170,15 @@ fitur = ['unesco',
          'kampanye',
          'pemilu']
 
-#hitung bobot dgn tfidf
+#jalankan fungsi untuk memberikan bobot dgn tfidf
 out_tfidf = preProcessing.tfidf(fitur)
 
 #save file kedalam csv format
 #path untuk hasil preprocessing
-pathOutPre = r'C:\Sidang Akhir\TA-Klasifikasi-Berita-Medmon-Ciletuh\Dataset\outputPreProcessing.csv'
-#path untuk hasil pemberian bobot dengan tf-idf (pembentukan singledimensional dataset)
-pathSglDt = r'C:\Sidang Akhir\TA-Klasifikasi-Berita-Medmon-Ciletuh\Dataset\single-dataset.csv'
+pathOutPre = r'C:\Sidang Akhir\Sidang\Hasil\outputPreProcessing.csv'
 
+#path untuk hasil pemberian bobot dengan tf-idf (pembentukan singledimensional dataset)
+pathSglDt = r'C:\Sidang Akhir\Sidang\Dataset\single-dataset.csv'
+
+#jalankan fungsi untuk menyimpan file kedalam format .csv
 preProcessing.saveCsv(pathOutPre, pathSglDt)
